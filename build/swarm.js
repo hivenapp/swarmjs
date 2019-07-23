@@ -24,6 +24,7 @@ var SwarmClient = /** @class */ (function (_super) {
         _this.socket = null;
         _this.heartbeatInterval = null;
         _this.heartbeat = null;
+        _this.seq = 0;
         return _this;
     }
     SwarmClient.prototype.connect = function () {
@@ -39,9 +40,10 @@ var SwarmClient = /** @class */ (function (_super) {
         socket.addEventListener('message', function (event) {
             var encoded = event.data;
             var decoded = _this.encoding === "json" ? JSON.parse(encoded) : encoded;
+            _this.seq = decoded.seq;
             switch (decoded.op) {
                 case 0:
-                    console.log(decoded);
+                    _this.emit("HIVEN_EVENT", { type: decoded.e, data: decoded.d });
                     break;
                 case 1:
                     _this.heartbeatInterval = decoded.d.hbt_int;
@@ -73,7 +75,7 @@ var SwarmClient = /** @class */ (function (_super) {
         }, this.heartbeatInterval || 30000);
     };
     SwarmClient.prototype.identify = function (token) {
-        this.sendRaw({ "op": 1, "d": { "token": token } });
+        this.sendRaw({ "op": 2, "d": { "token": token } });
     };
     return SwarmClient;
 }(events_1.EventEmitter));

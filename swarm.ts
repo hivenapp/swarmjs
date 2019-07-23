@@ -8,6 +8,7 @@ export class SwarmClient extends EventEmitter {
   socket: WebSocket;
   heartbeatInterval: number;
   heartbeat: any;
+  seq: number;
 
   constructor(swarmHost, encoding) {
     super();
@@ -19,6 +20,7 @@ export class SwarmClient extends EventEmitter {
     this.socket = null;
     this.heartbeatInterval = null;
     this.heartbeat = null;
+    this.seq = 0;
   }
 
   connect() {
@@ -39,9 +41,11 @@ export class SwarmClient extends EventEmitter {
       const encoded = event.data;
       const decoded = this.encoding === "json" ? JSON.parse(encoded) : encoded;
 
+      this.seq = decoded.seq;
+      
       switch (decoded.op) {
         case 0:
-          console.log(decoded);
+          this.emit("HIVEN_EVENT", {type: decoded.e, data: decoded.d});
           break;
         case 1:
           this.heartbeatInterval = decoded.d.hbt_int;
@@ -80,6 +84,6 @@ export class SwarmClient extends EventEmitter {
   }
 
   identify(token) {
-    this.sendRaw({"op": 1, "d": {"token": token}});
+    this.sendRaw({"op": 2, "d": {"token": token}});
   }
 }
