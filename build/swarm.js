@@ -18,7 +18,7 @@ var SwarmClient = /** @class */ (function (_super) {
     __extends(SwarmClient, _super);
     function SwarmClient(swarmHost, encoding) {
         var _this = _super.call(this) || this;
-        _this.swarmHost = swarmHost || "swarm.hiven.io";
+        _this.swarmHost = swarmHost || "wss://swarm.hiven.io";
         _this.encoding = encoding || "etf";
         _this.state = "not_connected";
         _this.socket = null;
@@ -28,13 +28,13 @@ var SwarmClient = /** @class */ (function (_super) {
     }
     SwarmClient.prototype.connect = function () {
         var _this = this;
-        var socket = new WebSocket("wss://" + this.swarmHost + "/socket?encoding=" + this.encoding);
+        var socket = new WebSocket(this.swarmHost + "/socket?encoding=" + this.encoding);
         this.socket = socket;
         this.state = "connecting";
         this.emit("SOCKET_STATE_CHANGE", "connecting");
         socket.addEventListener('open', function (event) {
-            _this.state = "connected";
-            _this.emit("SOCKET_STATE_CHANGE", "connected");
+            _this.state = "tcp_connected";
+            _this.emit("SOCKET_STATE_CHANGE", "tcp_connected");
         });
         socket.addEventListener('message', function (event) {
             var encoded = event.data;
@@ -46,6 +46,8 @@ var SwarmClient = /** @class */ (function (_super) {
                 case 1:
                     _this.heartbeatInterval = decoded.d.hbt_int;
                     _this.startHeartbeating();
+                    _this.state = "connected";
+                    _this.emit("SOCKET_STATE_CHANGE", "connected");
                     break;
                 default:
                     console.error("Swarm received unknown opcode");

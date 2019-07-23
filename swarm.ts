@@ -12,7 +12,7 @@ export class SwarmClient extends EventEmitter {
   constructor(swarmHost, encoding) {
     super();
 
-    this.swarmHost = swarmHost || "swarm.hiven.io";
+    this.swarmHost = swarmHost || "wss://swarm.hiven.io";
     this.encoding = encoding || "etf";
 
     this.state = "not_connected";
@@ -22,7 +22,7 @@ export class SwarmClient extends EventEmitter {
   }
 
   connect() {
-    const socket = new WebSocket(`wss://${this.swarmHost}/socket?encoding=${this.encoding}`);
+    const socket = new WebSocket(`${this.swarmHost}/socket?encoding=${this.encoding}`);
 
     this.socket = socket;
     this.state = "connecting";
@@ -30,9 +30,9 @@ export class SwarmClient extends EventEmitter {
     this.emit("SOCKET_STATE_CHANGE", "connecting");
 
     socket.addEventListener('open', (event) => {
-      this.state = "connected";
+      this.state = "tcp_connected";
 
-      this.emit("SOCKET_STATE_CHANGE", "connected");
+      this.emit("SOCKET_STATE_CHANGE", "tcp_connected");
     });
 
     socket.addEventListener('message', (event) => {
@@ -46,6 +46,10 @@ export class SwarmClient extends EventEmitter {
         case 1:
           this.heartbeatInterval = decoded.d.hbt_int;
           this.startHeartbeating();
+
+          this.state = "connected";
+          this.emit("SOCKET_STATE_CHANGE", "connected");
+          
           break;
         default:
           console.error("Swarm received unknown opcode")
