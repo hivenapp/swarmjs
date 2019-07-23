@@ -1,0 +1,16 @@
+{
+  "name": "hivenjs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "build/swarm.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hivenapp/hivenjs.git"
+  },
+  "author": "phineas",
+  "license": "ISC",
+  "dependencies": {
+    "@types/events": "^3.0.0",
+    "events": "^3.0.0"
+  }
+}
