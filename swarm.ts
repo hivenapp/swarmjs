@@ -61,8 +61,16 @@ export class SwarmClient extends EventEmitter {
     });
 
     socket.addEventListener('close', (event) => {
-      this.state = "closed";
-      this.emit("SOCKET_STATE_CHANGE", "closed");
+      switch(event.code) {
+        case 4003: {
+          this.state = event.reason;
+          this.emit("SOCKET_STATE_CHANGE", event.reason);
+        }
+        default: {
+          this.state = "closed";
+          this.emit("SOCKET_STATE_CHANGE", "closed");
+        }
+      }
     });
   }
 

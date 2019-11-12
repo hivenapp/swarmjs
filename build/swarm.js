@@ -56,8 +56,16 @@ var SwarmClient = /** @class */ (function (_super) {
             }
         });
         socket.addEventListener('close', function (event) {
-            _this.state = "closed";
-            _this.emit("SOCKET_STATE_CHANGE", "closed");
+            switch (event.code) {
+                case 4003: {
+                    _this.state = event.reason;
+                    _this.emit("SOCKET_STATE_CHANGE", event.reason);
+                }
+                default: {
+                    _this.state = "closed";
+                    _this.emit("SOCKET_STATE_CHANGE", "closed");
+                }
+            }
         });
     };
     SwarmClient.prototype.sendRaw = function (data) {
