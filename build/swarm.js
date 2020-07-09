@@ -14,12 +14,19 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var events_1 = require("events");
+var pako_1 = require("pako");
+var DecompressionStrategy;
+(function (DecompressionStrategy) {
+    DecompressionStrategy["ZlibJson"] = "zlib_json";
+    DecompressionStrategy["TextJson"] = "text_json";
+})(DecompressionStrategy || (DecompressionStrategy = {}));
 var SwarmClient = /** @class */ (function (_super) {
     __extends(SwarmClient, _super);
-    function SwarmClient(swarmHost, encoding) {
+    function SwarmClient(swarmHost, encoding, compression) {
         var _this = _super.call(this) || this;
         _this.swarmHost = swarmHost || "wss://swarm.hiven.io";
-        _this.encoding = encoding || "etf";
+        _this.encoding = encoding || "json";
+        _this.compression = compression || DecompressionStrategy.ZlibJson;
         _this.state = "not_connected";
         _this.socket = null;
         _this.heartbeatInterval = null;
@@ -38,15 +45,15 @@ var SwarmClient = /** @class */ (function (_super) {
             _this.emit("SOCKET_STATE_CHANGE", "tcp_connected");
         });
         socket.addEventListener('message', function (event) {
-            var encoded = event.data;
-            var decoded = _this.encoding === "json" ? JSON.parse(encoded) : encoded;
-            _this.seq = decoded.seq;
-            switch (decoded.op) {
+            var compressed = event.data;
+            var decompressed = _this.decompress(compressed);
+            _this.seq = decompressed.seq;
+            switch (decompressed.op) {
                 case 0:
-                    _this.emit("HIVEN_EVENT", { type: decoded.e, data: decoded.d });
+                    _this.emit("HIVEN_EVENT", { type: decompressed.e, data: decompressed.d });
                     break;
                 case 1:
-                    _this.heartbeatInterval = decoded.d.hbt_int;
+                    _this.heartbeatInterval = decompressed.d.hbt_int;
                     _this.startHeartbeating();
                     _this.state = "connected";
                     _this.emit("SOCKET_STATE_CHANGE", "connected");
@@ -67,6 +74,16 @@ var SwarmClient = /** @class */ (function (_super) {
                 }
             }
         });
+    };
+    SwarmClient.prototype.decompress = function (data) {
+        switch (this.compression) {
+            case DecompressionStrategy.ZlibJson: {
+                return JSON.parse(pako_1.default.inflate(data, { to: 'string' }));
+            }
+            default: {
+                return JSON.parse(data);
+            }
+        }
     };
     SwarmClient.prototype.sendRaw = function (data) {
         var encoded = JSON.stringify(data);

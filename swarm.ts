@@ -1,8 +1,15 @@
 import { EventEmitter } from 'events';
+import pako from 'pako';
+
+enum DecompressionStrategy {
+  ZlibJson = 'zlib_json',
+  TextJson = 'text_json'
+}
 
 export class SwarmClient extends EventEmitter {
   swarmHost: string;
   encoding: string;
+  compression: DecompressionStrategy;
 
   state: string;
   socket: WebSocket;
@@ -10,11 +17,12 @@ export class SwarmClient extends EventEmitter {
   heartbeat: any;
   seq: number;
 
-  constructor(swarmHost, encoding) {
+  constructor(swarmHost, encoding, compression) {
     super();
 
     this.swarmHost = swarmHost || "wss://swarm.hiven.io";
-    this.encoding = encoding || "etf";
+    this.encoding = encoding || "json";
+    this.compression = compression || DecompressionStrategy.ZlibJson;
 
     this.state = "not_connected";
     this.socket = null;
@@ -38,17 +46,17 @@ export class SwarmClient extends EventEmitter {
     });
 
     socket.addEventListener('message', (event) => {
-      const encoded = event.data;
-      const decoded = this.encoding === "json" ? JSON.parse(encoded) : encoded;
-
-      this.seq = decoded.seq;
+      const compressed = event.data;
+      const decompressed = this.decompress(compressed);
       
-      switch (decoded.op) {
+      this.seq = decompressed.seq;
+      
+      switch (decompressed.op) {
         case 0:
-          this.emit("HIVEN_EVENT", {type: decoded.e, data: decoded.d});
+          this.emit("HIVEN_EVENT", {type: decompressed.e, data: decompressed.d});
           break;
         case 1:
-          this.heartbeatInterval = decoded.d.hbt_int;
+          this.heartbeatInterval = decompressed.d.hbt_int;
           this.startHeartbeating();
 
           this.state = "connected";
@@ -72,6 +80,18 @@ export class SwarmClient extends EventEmitter {
         }
       }
     });
+  }
+
+  private decompress(data: any): any {
+    switch (this.compression) {
+      case DecompressionStrategy.ZlibJson: {
+        return JSON.parse(pako.inflate(data, {to: 'string'}));
+      }
+
+      default: {
+        return JSON.parse(data);
+      }
+    }
   }
 
   sendRaw(data) {
