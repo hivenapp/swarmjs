@@ -19,7 +19,7 @@ var DecompressionStrategy;
 (function (DecompressionStrategy) {
     DecompressionStrategy["ZlibJson"] = "zlib_json";
     DecompressionStrategy["TextJson"] = "text_json";
-})(DecompressionStrategy || (DecompressionStrategy = {}));
+})(DecompressionStrategy = exports.DecompressionStrategy || (exports.DecompressionStrategy = {}));
 var SwarmClient = /** @class */ (function (_super) {
     __extends(SwarmClient, _super);
     function SwarmClient(swarmHost, encoding, compression) {
@@ -36,7 +36,7 @@ var SwarmClient = /** @class */ (function (_super) {
     }
     SwarmClient.prototype.connect = function () {
         var _this = this;
-        var socket = new WebSocket(this.swarmHost + "/socket?encoding=" + this.encoding);
+        var socket = new WebSocket(this.swarmHost + "/socket?encoding=" + this.encoding + "&compression=" + this.compression);
         this.socket = socket;
         this.state = "connecting";
         this.emit("SOCKET_STATE_CHANGE", "connecting");
@@ -78,7 +78,7 @@ var SwarmClient = /** @class */ (function (_super) {
     SwarmClient.prototype.decompress = function (data) {
         switch (this.compression) {
             case DecompressionStrategy.ZlibJson: {
-                return JSON.parse(pako_1.default.inflate(data, { to: 'string' }));
+                return JSON.parse(pako_1.inflate(data, { to: 'string' }));
             }
             default: {
                 return JSON.parse(data);

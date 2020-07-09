@@ -34,6 +34,10 @@ export class SwarmClient extends EventEmitter {
   connect() {
     const socket = new WebSocket(`${this.swarmHost}/socket?encoding=${this.encoding}&compression=${this.compression}`);
 
+    if(this.compression === DecompressionStrategy.ZlibJson) {
+      socket.binaryType = 'arraybuffer';
+    }
+
     this.socket = socket;
     this.state = "connecting";
     
