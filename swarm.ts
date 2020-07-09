@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
-import pako from 'pako';
+import {inflate} from 'pako';
 
-enum DecompressionStrategy {
+export enum DecompressionStrategy {
   ZlibJson = 'zlib_json',
   TextJson = 'text_json'
 }
@@ -32,7 +32,7 @@ export class SwarmClient extends EventEmitter {
   }
 
   connect() {
-    const socket = new WebSocket(`${this.swarmHost}/socket?encoding=${this.encoding}`);
+    const socket = new WebSocket(`${this.swarmHost}/socket?encoding=${this.encoding}&compression=${this.compression}`);
 
     this.socket = socket;
     this.state = "connecting";
@@ -85,7 +85,7 @@ export class SwarmClient extends EventEmitter {
   private decompress(data: any): any {
     switch (this.compression) {
       case DecompressionStrategy.ZlibJson: {
-        return JSON.parse(pako.inflate(data, {to: 'string'}));
+        return JSON.parse(inflate(data, {to: 'string'}));
       }
 
       default: {
